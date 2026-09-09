@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "140179972997",
+    "project_id": "mcas-companion",
+    "storage_bucket": "mcas-companion.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140179972997:android:4c46e5cf542412f44c5aec",
+        "android_client_info": {
+          "package_name": "com.example.mcas_companion"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "140179972997-9o1uqqr0qm3ff5e0dbva7o7q5eqe3l5l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAORQJpmcrBHosrc9a23l72qucc-zPWr6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "140179972997-9o1uqqr0qm3ff5e0dbva7o7q5eqe3l5l.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "140179972997-j1dlllalmbjdcsg1fegccc15romcdfr7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mcasCompanion"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
