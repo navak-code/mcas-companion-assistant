@@ -48,7 +48,7 @@ class SettingsScreen extends StatelessWidget {
                         Text(displayName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         Text(
-                          (conditions != null && conditions.isNotEmpty) ? conditions : 'No diagnoses added yet',
+                          (conditions != null && conditions.isNotEmpty) ? conditions : 'No conditions added yet',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -82,11 +82,11 @@ class SettingsScreen extends StatelessWidget {
             _buildSettingsTile(
               context,
               icon: CupertinoIcons.bandage,
-              title: 'Medical Profile & Conditions',
+              title: 'Medical Conditions / Triggers',
               trailing: (conditions != null && conditions.isNotEmpty) ? conditions : 'Tap to Add',
               onTap: () => _showEditDialog(
                 context,
-                title: 'Medical Conditions / Diagnoses',
+                title: 'Medical Conditions / Triggers',
                 initialValue: conditions ?? '',
                 onSave: (newConditions) {
                   provider.updateUserProfile(medicalConditions: newConditions);
@@ -98,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
               context,
               icon: CupertinoIcons.sparkles,
               title: 'AI Vision Engine & API Key',
-              trailing: provider.useCloudAi ? 'Central Cloud AI' : 'Personal BYOK',
+              trailing: provider.useCloudAi ? 'Central Cloud (Beta)' : 'Personal BYOK (${AiVisionService.modelName})',
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AiSettingsScreen()));
               },
@@ -267,7 +267,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       if (!isValid && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('The provided Gemini API Key is invalid or has expired.'),
+            content: Text('The provided Gemini API Key is invalid or expired.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -297,29 +297,27 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Primary BYOK Option
           Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: SwitchListTile(
-              title: const Text('Use MCAS Cloud AI (Recommended)', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Zero setup required. Managed centrally through Firebase.'),
-              value: _useCloudAi,
-              activeColor: Colors.teal,
-              onChanged: (val) => setState(() => _useCloudAi = val),
-              secondary: const Icon(CupertinoIcons.cloud),
+            elevation: !_useCloudAi ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: !_useCloudAi ? Colors.teal : Colors.grey.shade300, width: 2),
             ),
-          ),
-          const SizedBox(height: 16),
-          if (!_useCloudAi)
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Bring Your Own Key (BYOK)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RadioListTile<bool>(
+                    value: false,
+                    groupValue: _useCloudAi,
+                    activeColor: Colors.teal,
+                    title: const Text('Bring Your Own Key (BYOK)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Recommended for immediate high-speed scanning.'),
+                    onChanged: (val) => setState(() => _useCloudAi = val ?? false),
+                  ),
+                  if (!_useCloudAi) ...[
                     const SizedBox(height: 8),
                     TextField(
                       controller: _apiKeyController,
@@ -332,13 +330,32 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Target model: ${AiVisionService.modelName}. Your key is saved locally in Hive.',
+                      'Target model: ${AiVisionService.modelName}. Your key is stored securely on your device.',
                       style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+
+          // Beta Central Cloud AI Option
+          Card(
+            elevation: _useCloudAi ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: _useCloudAi ? Colors.teal : Colors.grey.shade300, width: 2),
+            ),
+            child: SwitchListTile(
+              title: const Text('Use Central Cloud AI (Beta Feature)', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Developer preview. Uses central project backend credentials.'),
+              value: _useCloudAi,
+              activeColor: Colors.teal,
+              onChanged: (val) => setState(() => _useCloudAi = val),
+              secondary: const Icon(CupertinoIcons.lab_flask_solid),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: Padding(

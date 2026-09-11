@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,7 +27,7 @@ class AppStateProvider extends ChangeNotifier {
   bool _isMockMode = true;
 
   bool _isOnboardingCompleted = false;
-  bool _useCloudAi = true;
+  bool _useCloudAi = false; // Default to BYOK
   String? _customApiKey;
   List<String> _enabledPresets = [];
 
@@ -90,11 +91,9 @@ class AppStateProvider extends ChangeNotifier {
     _userName = settings?['displayName'] as String? ?? _currentUser?.displayName;
     _medicalConditions = settings?['medicalConditions'] as String?;
 
-    if (settings != null) {
-      if (settings.containsKey('useCloudAi')) {
-        _useCloudAi = settings['useCloudAi'] as bool;
-        await storageService.setUseCloudAi(_useCloudAi);
-      }
+    if (settings != null && settings.containsKey('useCloudAi')) {
+      _useCloudAi = settings['useCloudAi'] as bool? ?? false;
+      await storageService.setUseCloudAi(_useCloudAi);
     }
 
     _syncUserData(uid);
@@ -107,6 +106,8 @@ class AppStateProvider extends ChangeNotifier {
     _triggers = [];
     _userName = null;
     _medicalConditions = null;
+    _useCloudAi = false;
+    _customApiKey = null;
   }
 
   Future<void> _syncUserData(String uid) async {
@@ -124,7 +125,7 @@ class AppStateProvider extends ChangeNotifier {
     });
   }
 
-  // --- Profile & Custom Key Management ---
+  // --- Profile & Key Management ---
   Future<void> updateUserProfile({String? name, String? medicalConditions}) async {
     final Map<String, dynamic> dataToUpdate = {};
     if (name != null) {
@@ -164,7 +165,6 @@ class AppStateProvider extends ChangeNotifier {
         'updatedAt': DateTime.now().toIso8601String(),
       });
     }
-
     notifyListeners();
   }
 
@@ -204,6 +204,27 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Meal Analysis Execution ---
+  Future<MealAnalysis> analyzeAndSaveMeal(Uint8List imageBytes) async {
+    _isAnalyzing = true;
+    notifyListeners();
+    try {
+      final analysis = await _aiVisionService.analyzeMeal(
+        imageBytes: imageBytes,
+        useCloudAi: _useCloudAi,
+        customApiKey: _customApiKey,
+        userConditions: _medicalConditions,
+      );
+      if (_currentUser != null) {
+        await _firestoreService.addMeal(_currentUser!.uid, analysis);
+      }
+      return analysis;
+    } finally {
+      _isAnalyzing = false;
+      notifyListeners();
+    }
+  }
+
   void updateFeeling(int feeling) {
     _currentFeeling = feeling;
     notifyListeners();
@@ -238,25 +259,6 @@ class AppStateProvider extends ChangeNotifier {
     return await analyzeAndSaveMeal(bytes);
   }
 
-  Future<MealAnalysis> analyzeAndSaveMeal(Uint8List imageBytes) async {
-    _isAnalyzing = true;
-    notifyListeners();
-    try {
-      final analysis = await _aiVisionService.analyzeMeal(
-        imageBytes: imageBytes,
-        useCloudAi: _useCloudAi,
-        customApiKey: _customApiKey,
-      );
-      if (_currentUser != null) {
-        await _firestoreService.addMeal(_currentUser!.uid, analysis);
-      }
-      return analysis;
-    } finally {
-      _isAnalyzing = false;
-      notifyListeners();
-    }
-  }
-
   Future<void> confirmMeal(MealAnalysis meal) async {
     final updated = meal.copyWith(isConfirmed: true);
     if (_currentUser != null) {
@@ -286,7 +288,7 @@ class AppStateProvider extends ChangeNotifier {
     await FirebaseAuth.instance.signOut();
     await storageService.clearAll();
     _isOnboardingCompleted = false;
-    _useCloudAi = true;
+    _useCloudAi = false;
     _customApiKey = null;
     _clearLocalData();
     notifyListeners();
